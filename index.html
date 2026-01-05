@@ -1,688 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>ReplyForge — Email Reply Generator</title>
-  <meta name="description" content="Paste an email. Generate calm, professional replies with tone controls and versions." />
-  <style>
-    :root{
-      --bg0:#070A12;
-      --bg1:#0B1220;
-      --card: rgba(255,255,255,.06);
-      --card2: rgba(255,255,255,.09);
-      --stroke: rgba(255,255,255,.12);
-      --text:#EAF0FF;
-      --muted: rgba(234,240,255,.70);
-      --muted2: rgba(234,240,255,.55);
-
-      --brand1:#7C3AED;
-      --brand2:#06B6D4;
-      --brand3:#22C55E;
-      --warn:#F59E0B;
-      --danger:#EF4444;
-
-      --shadow: 0 24px 80px rgba(0,0,0,.45);
-      --shadow2: 0 12px 30px rgba(0,0,0,.35);
-      --radius: 18px;
-      --radius2: 14px;
-      --blur: 18px;
-
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-    }
-
-    /* Light mode tokens */
-    [data-theme="light"]{
-      --bg0:#F7F8FC;
-      --bg1:#EEF2FF;
-      --card: rgba(255,255,255,.75);
-      --card2: rgba(255,255,255,.88);
-      --stroke: rgba(10,20,40,.10);
-      --text:#0B1220;
-      --muted: rgba(11,18,32,.72);
-      --muted2: rgba(11,18,32,.55);
-      --shadow: 0 24px 80px rgba(8,12,20,.12);
-      --shadow2: 0 12px 30px rgba(8,12,20,.10);
-    }
-
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      font-family: var(--sans);
-      color: var(--text);
-      background:
-        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.25), transparent 55%),
-        radial-gradient(1000px 700px at 90% 20%, rgba(6,182,212,.25), transparent 55%),
-        radial-gradient(900px 700px at 60% 95%, rgba(34,197,94,.18), transparent 55%),
-        linear-gradient(180deg, var(--bg0), var(--bg1));
-      overflow-x:hidden;
-    }
-
-    .wrap{
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 28px 18px 60px;
-    }
-
-    /* Top bar */
-    .topbar{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:16px;
-      padding: 12px 14px;
-      border: 1px solid var(--stroke);
-      border-radius: 999px;
-      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
-      backdrop-filter: blur(var(--blur));
-      box-shadow: var(--shadow2);
-      position: sticky;
-      top: 12px;
-      z-index: 10;
-    }
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      min-width: 220px;
-    }
-    .logo{
-      width: 34px;
-      height: 34px;
-      border-radius: 12px;
-      background:
-        radial-gradient(12px 12px at 30% 30%, rgba(255,255,255,.9), rgba(255,255,255,0) 60%),
-        linear-gradient(135deg, var(--brand1), var(--brand2));
-      box-shadow: 0 10px 24px rgba(124,58,237,.25);
-      border: 1px solid rgba(255,255,255,.22);
-    }
-    .brand h1{
-      margin:0;
-      font-size: 14px;
-      letter-spacing: .2px;
-      line-height:1.05;
-    }
-    .brand p{
-      margin:2px 0 0;
-      font-size: 12px;
-      color: var(--muted2);
-    }
-
-    .actions{
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding: 10px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,.05);
-      color: var(--muted);
-      font-size: 12px;
-      user-select:none;
-    }
-    .pill strong{ color: var(--text); font-weight: 650; }
-
-    .btn{
-      cursor:pointer;
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
-      border-radius: 999px;
-      padding: 10px 14px;
-      font-size: 12px;
-      transition: transform .12s ease, background .12s ease, border-color .12s ease;
-      user-select:none;
-    }
-    .btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.09); }
-    .btn:active{ transform: translateY(0px) scale(.99); }
-
-    .btn.primary{
-      border-color: rgba(124,58,237,.35);
-      background: linear-gradient(135deg, rgba(124,58,237,.95), rgba(6,182,212,.85));
-      box-shadow: 0 16px 38px rgba(124,58,237,.20);
-    }
-    .btn.primary:hover{ filter: brightness(1.06); }
-    .btn.ghost{
-      background: transparent;
-    }
-
-    /* Hero */
-    .hero{
-      margin-top: 22px;
-      display:grid;
-      grid-template-columns: 1.35fr .65fr;
-      gap: 16px;
-      align-items:stretch;
-    }
-    .heroCard{
-      border: 1px solid var(--stroke);
-      border-radius: var(--radius);
-      background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.04));
-      backdrop-filter: blur(var(--blur));
-      box-shadow: var(--shadow);
-      padding: 22px;
-      position:relative;
-      overflow:hidden;
-    }
-    .heroCard:before{
-      content:"";
-      position:absolute;
-      inset:-60px -60px auto auto;
-      width: 220px;
-      height: 220px;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.25), rgba(255,255,255,0) 60%),
-                  radial-gradient(circle at 60% 60%, rgba(6,182,212,.25), rgba(255,255,255,0) 60%),
-                  linear-gradient(135deg, rgba(124,58,237,.35), rgba(34,197,94,.18));
-      transform: rotate(18deg);
-      filter: blur(0px);
-      opacity:.9;
-      border-radius: 48px;
-    }
-
-    .kicker{
-      display:inline-flex;
-      align-items:center;
-      gap:10px;
-      color: var(--muted);
-      font-size: 12px;
-      margin-bottom: 10px;
-    }
-    .dot{
-      width:10px;height:10px;border-radius:999px;
-      background: linear-gradient(135deg, var(--brand1), var(--brand2));
-      box-shadow: 0 0 0 6px rgba(124,58,237,.12);
-    }
-    .heroTitle{
-      margin: 0;
-      font-size: 30px;
-      line-height: 1.08;
-      letter-spacing: -.6px;
-    }
-    .heroSubtitle{
-      margin: 10px 0 0;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.5;
-      max-width: 64ch;
-    }
-
-    .sideCard{
-      border: 1px solid var(--stroke);
-      border-radius: var(--radius);
-      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-      backdrop-filter: blur(var(--blur));
-      box-shadow: var(--shadow2);
-      padding: 18px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
-    .stat{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      padding: 12px 12px;
-      border-radius: 14px;
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,.05);
-    }
-    .stat b{ font-size: 12px; }
-    .stat span{ font-size: 12px; color: var(--muted); }
-    .mini{
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    /* Tabs */
-    .panel{
-      margin-top: 16px;
-      border: 1px solid var(--stroke);
-      border-radius: var(--radius);
-      background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.04));
-      backdrop-filter: blur(var(--blur));
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    .tabs{
-      display:flex;
-      gap:8px;
-      padding: 10px;
-      border-bottom: 1px solid var(--stroke);
-      background: rgba(255,255,255,.05);
-      overflow:auto;
-    }
-    .tab{
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,.04);
-      color: var(--muted);
-      padding: 10px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      cursor:pointer;
-      white-space:nowrap;
-      transition: background .12s ease, transform .12s ease, color .12s ease;
-      user-select:none;
-    }
-    .tab:hover{ transform: translateY(-1px); background: rgba(255,255,255,.07); color: var(--text); }
-    .tab.active{
-      color: var(--text);
-      background: linear-gradient(135deg, rgba(124,58,237,.55), rgba(6,182,212,.35));
-      border-color: rgba(255,255,255,.18);
-    }
-
-    .content{
-      padding: 16px;
-    }
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    .card{
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,.05);
-      border-radius: var(--radius2);
-      padding: 14px;
-    }
-    .card h3{
-      margin:0 0 10px;
-      font-size: 13px;
-      letter-spacing: .2px;
-    }
-    .hint{
-      margin: 0 0 10px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    textarea, .out{
-      width: 100%;
-      border: 1px solid var(--stroke);
-      background: rgba(0,0,0,.20);
-      color: var(--text);
-      border-radius: 14px;
-      padding: 12px 12px;
-      outline: none;
-      font-size: 13px;
-      line-height: 1.45;
-      min-height: 180px;
-      resize: vertical;
-      transition: border-color .12s ease, background .12s ease, transform .12s ease;
-    }
-    [data-theme="light"] textarea,
-    [data-theme="light"] .out{
-      background: rgba(255,255,255,.70);
-    }
-    textarea:focus{ border-color: rgba(6,182,212,.45); }
-
-    .out{
-      min-height: 180px;
-      white-space: pre-wrap;
-    }
-
-    .row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
-      margin-top: 10px;
-    }
-
-    .controls{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-
-    .select, .sliderWrap{
-      border: 1px solid var(--stroke);
-      border-radius: 999px;
-      background: rgba(255,255,255,.04);
-      padding: 8px 10px;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-    select{
-      border:none;
-      background: transparent;
-      color: var(--text);
-      outline:none;
-      font-size: 12px;
-    }
-    input[type="range"]{
-      accent-color: var(--brand2);
-    }
-
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,.04);
-      font-size: 12px;
-      color: var(--muted);
-      user-select:none;
-    }
-    .badge.good{ border-color: rgba(34,197,94,.28); }
-    .badge.warn{ border-color: rgba(245,158,11,.28); }
-    .badge.danger{ border-color: rgba(239,68,68,.28); }
-
-    .splitBtns{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-
-    .small{
-      font-size: 12px;
-      color: var(--muted2);
-      line-height: 1.5;
-    }
-
-    .toast{
-      position: fixed;
-      left: 50%;
-      bottom: 18px;
-      transform: translateX(-50%);
-      padding: 10px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--stroke);
-      background: rgba(0,0,0,.50);
-      color: var(--text);
-      box-shadow: var(--shadow2);
-      opacity: 0;
-      pointer-events:none;
-      transition: opacity .18s ease, transform .18s ease;
-      font-size: 12px;
-      backdrop-filter: blur(var(--blur));
-      z-index: 99;
-    }
-    [data-theme="light"] .toast{
-      background: rgba(255,255,255,.75);
-    }
-    .toast.show{
-      opacity: 1;
-      transform: translateX(-50%) translateY(-4px);
-    }
-
-    .hidden{ display:none !important; }
-
-    .pulse{
-      position:relative;
-    }
-    .pulse:after{
-      content:"";
-      position:absolute;
-      inset:-2px;
-      border-radius:999px;
-      border: 1px solid rgba(6,182,212,.22);
-      opacity:0;
-      animation: pulse 2.2s ease-in-out infinite;
-      pointer-events:none;
-    }
-    @keyframes pulse{
-      0%{ opacity:0; transform: scale(.98); }
-      30%{ opacity:1; }
-      70%{ opacity:.25; transform: scale(1.02); }
-      100%{ opacity:0; transform: scale(1.03); }
-    }
-
-    @media (max-width: 980px){
-      .hero{ grid-template-columns: 1fr; }
-      .grid{ grid-template-columns: 1fr; }
-      .brand{ min-width:auto; }
-    }
-  </style>
-</head>
-
-<body>
-  <div class="wrap" id="app" data-theme="dark">
-    <div class="topbar">
-      <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
-        <div>
-          <h1>ReplyForge</h1>
-          <p>Paste → click → send (no fluff)</p>
-        </div>
-      </div>
-
-      <div class="actions">
-        <div class="pill" title="Local demo mode">
-          <span>Mode:</span> <strong id="modeLabel">Demo</strong>
-        </div>
-        <button class="btn ghost" id="themeBtn" title="Toggle theme">🌙 Theme</button>
-        <button class="btn primary pulse" id="primaryGenerateTop" title="Generate reply">⚡ Generate</button>
-      </div>
-    </div>
-
-    <div class="hero">
-      <div class="heroCard">
-        <div class="kicker"><span class="dot"></span> fast, calm, professional — in one click</div>
-        <h2 class="heroTitle">Turn stressful emails into clean replies.</h2>
-        <p class="heroSubtitle">
-          Choose a scenario + tone, generate multiple versions, and copy instantly. This is a polished shell —
-          we’ll wire real AI in Step 2.
-        </p>
-      </div>
-
-      <div class="sideCard">
-        <div class="stat">
-          <div>
-            <b>Free daily limit</b><div class="mini">3 generations / day</div>
-          </div>
-          <div class="badge good" id="quotaBadge">3 left</div>
-        </div>
-        <div class="stat">
-          <div>
-            <b>Privacy</b><div class="mini">No login • No tracking</div>
-          </div>
-          <div class="badge warn">Local demo</div>
-        </div>
-        <div class="stat">
-          <div>
-            <b>Next upgrade</b><div class="mini">Real AI + paywall</div>
-          </div>
-          <div class="badge">Step 2</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="tabs" role="tablist" aria-label="Tabs">
-        <div class="tab active" data-tab="generator" role="tab" aria-selected="true">Generator</div>
-        <div class="tab" data-tab="templates" role="tab" aria-selected="false">Templates</div>
-        <div class="tab" data-tab="history" role="tab" aria-selected="false">History</div>
-        <div class="tab" data-tab="settings" role="tab" aria-selected="false">Settings</div>
-      </div>
-
-      <div class="content">
-        <!-- GENERATOR -->
-        <div class="tabPanel" id="tab-generator">
-          <div class="grid">
-            <div class="card">
-              <h3>Incoming email</h3>
-              <p class="hint">Paste the email you received. The generator will produce a reply based on your scenario + tone.</p>
-              <textarea id="incoming" placeholder="Paste the email here..."></textarea>
-
-              <div class="row">
-                <div class="controls">
-                  <div class="select">
-                    <span>Scenario</span>
-                    <select id="scenario">
-                      <option value="client-angry">Angry client</option>
-                      <option value="boss-urgent">Boss urgent request</option>
-                      <option value="say-no">Politely say no</option>
-                      <option value="follow-up">Follow-up (no response)</option>
-                      <option value="apology">Apology + fix</option>
-                      <option value="professor">Professor / school admin</option>
-                    </select>
-                  </div>
-
-                  <div class="select">
-                    <span>Tone</span>
-                    <select id="tone">
-                      <option value="calm">Calm & professional</option>
-                      <option value="warm">Warm & friendly</option>
-                      <option value="firm">Firm & clear</option>
-                      <option value="short">Short & direct</option>
-                      <option value="formal">Very formal</option>
-                    </select>
-                  </div>
-
-                  <div class="sliderWrap">
-                    <span>Length</span>
-                    <input id="length" type="range" min="1" max="5" value="3" />
-                    <span id="lengthLabel" style="min-width:64px;text-align:right;">Medium</span>
-                  </div>
-                </div>
-
-                <div class="splitBtns">
-                  <button class="btn primary" id="generateBtn">⚡ Generate</button>
-                  <button class="btn" id="variationsBtn" title="Generate 3 options">✨ 3 Versions</button>
-                  <button class="btn" id="clearBtn">🧹 Clear</button>
-                </div>
-              </div>
-
-              <p class="small" style="margin-top:10px;">
-                Pro: the goal is not “smart”. It’s “sendable”. If it’s sendable, it wins.
-              </p>
-            </div>
-
-            <div class="card">
-              <h3>Generated reply</h3>
-              <p class="hint">This is demo output. Step 2 will connect real AI to the same UI.</p>
-              <div class="out" id="output">Your reply will appear here.</div>
-
-              <div class="row">
-                <div class="controls">
-                  <span class="badge good" id="qualityBadge">Ready-to-send</span>
-                  <span class="badge" id="metaBadge">Scenario: Angry client</span>
-                </div>
-                <div class="splitBtns">
-                  <button class="btn" id="copyBtn">📋 Copy</button>
-                  <button class="btn" id="saveBtn">💾 Save to History</button>
-                </div>
-              </div>
-
-              <p class="small" style="margin-top:10px;">
-                Tip: the best replies do 3 things: acknowledge → clarify → next step.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- TEMPLATES -->
-        <div class="tabPanel hidden" id="tab-templates">
-          <div class="grid">
-            <div class="card">
-              <h3>One-click starters</h3>
-              <p class="hint">Pick a template to auto-fill the incoming email box (for testing).</p>
-              <div class="splitBtns">
-                <button class="btn" data-template="angryClient">🔥 Angry client</button>
-                <button class="btn" data-template="sayNo">🙅 Say no</button>
-                <button class="btn" data-template="followUp">⏳ Follow-up</button>
-                <button class="btn" data-template="bossUrgent">⚠️ Boss urgent</button>
-                <button class="btn" data-template="apology">🧩 Apology</button>
-              </div>
-              <p class="small" style="margin-top:12px;">Use templates to quickly test tones and lengths.</p>
-            </div>
-
-            <div class="card">
-              <h3>Reply patterns</h3>
-              <p class="hint">These are the “winning formulas” behind good replies.</p>
-              <div class="out" style="min-height:auto;">
-1) Acknowledge + align
-2) Clarify the key point (1–2 sentences)
-3) Offer a concrete next step (with a time)
-4) Close politely
-
-Examples:
-• “Thanks for flagging this — I understand the frustration.”
-• “To confirm, the issue is X occurring on Y.”
-• “Here’s what I’ll do next: … by …”
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- HISTORY -->
-        <div class="tabPanel hidden" id="tab-history">
-          <div class="card">
-            <h3>Saved history</h3>
-            <p class="hint">Local-only. Refresh clears it unless you keep the tab open.</p>
-            <div id="historyList" class="out" style="min-height: 240px;">No saved replies yet.</div>
-            <div class="row">
-              <div class="controls">
-                <span class="badge">Local session</span>
-              </div>
-              <div class="splitBtns">
-                <button class="btn" id="clearHistoryBtn">🗑️ Clear history</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- SETTINGS -->
-        <div class="tabPanel hidden" id="tab-settings">
-          <div class="grid">
-            <div class="card">
-              <h3>Daily limit (demo)</h3>
-              <p class="hint">We simulate a free-tier quota. Real quota comes with Step 2 server logic.</p>
-              <div class="row">
-                <div class="controls">
-                  <span class="badge" id="quotaExplain">You have 3 generations left today.</span>
-                </div>
-                <div class="splitBtns">
-                  <button class="btn" id="resetQuotaBtn">🔁 Reset quota</button>
-                </div>
-              </div>
-              <p class="small" style="margin-top:10px;">
-                Monetization later = free 3/day, pay to unlock unlimited + best model.
-              </p>
-            </div>
-
-            <div class="card">
-              <h3>About this build</h3>
-              <p class="hint">This is a premium UI shell in a single HTML file. Step 2 will connect it to real AI.</p>
-              <div class="out" style="min-height:auto;">
-✅ Single file (easy deploy)
-✅ Tabs + templates + history
-✅ Theme toggle
-✅ Quota simulation
-✅ Copy & save
-
-Next: add a tiny server endpoint that calls an AI model.
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="toast" id="toast">Copied.</div>
-  </div>
-
-  <script>
+<script>
     // --- Tiny helpers
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -692,7 +8,27 @@ Next: add a tiny server endpoint that calls an AI model.
       toastEl.classList.add("show");
       setTimeout(()=>toastEl.classList.remove("show"), 1100);
     }
-
+  
+    // ✅ Cloudflare Worker endpoint (AI API)
+    const API_URL = "https://replyforge-api.wcn6xdmynv.workers.dev";
+  
+    async function callAI(emailText){
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: emailText,
+          scenario: $("#scenario").value,
+          tone: $("#tone").value,
+          length: Number($("#length").value),
+        }),
+      });
+  
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "API error");
+      return (data?.reply || "").toString();
+    }
+  
     // --- Theme toggle
     const app = $("#app");
     const themeBtn = $("#themeBtn");
@@ -704,7 +40,7 @@ Next: add a tiny server endpoint that calls an AI model.
       const cur = app.getAttribute("data-theme");
       setTheme(cur === "dark" ? "light" : "dark");
     });
-
+  
     // --- Tabs
     const tabs = $$(".tab");
     const panels = $$(".tabPanel");
@@ -713,7 +49,7 @@ Next: add a tiny server endpoint that calls an AI model.
       panels.forEach(p => p.classList.toggle("hidden", p.id !== `tab-${name}`));
     }
     tabs.forEach(t => t.addEventListener("click", () => activateTab(t.dataset.tab)));
-
+  
     // --- Length label
     const length = $("#length");
     const lengthLabel = $("#lengthLabel");
@@ -723,8 +59,8 @@ Next: add a tiny server endpoint that calls an AI model.
     function syncLength(){ lengthLabel.textContent = lengthName(length.value); }
     length.addEventListener("input", syncLength);
     syncLength();
-
-    // --- Quota (demo only)
+  
+    // --- Quota (demo only UI, but now used for real AI calls too)
     let quota = 3;
     const quotaBadge = $("#quotaBadge");
     const quotaExplain = $("#quotaExplain");
@@ -739,38 +75,38 @@ Next: add a tiny server endpoint that calls an AI model.
     }
     syncQuota();
     $("#resetQuotaBtn").addEventListener("click", () => { quota = 3; syncQuota(); toast("Quota reset."); });
-
+  
     // --- Templates
     const templates = {
       angryClient: `Subject: Unacceptable — fix this now
-
-Hi,
-
-This is the third time I’ve had to follow up. The issue still isn’t resolved and it’s impacting our work. I need an immediate explanation and a timeline for a fix.
-
-—`,
+  
+  Hi,
+  
+  This is the third time I’ve had to follow up. The issue still isn’t resolved and it’s impacting our work. I need an immediate explanation and a timeline for a fix.
+  
+  —`,
       sayNo: `Subject: Request
-
-Hi,
-
-Could you take on this extra task by Friday? It would really help if you could handle it.
-
-Thanks,`,
+  
+  Hi,
+  
+  Could you take on this extra task by Friday? It would really help if you could handle it.
+  
+  Thanks,`,
       followUp: `Subject: Following up
-
-Hi,
-
-Just checking in on my last message from last week. Do you have any update?
-
-Best,`,
+  
+  Hi,
+  
+  Just checking in on my last message from last week. Do you have any update?
+  
+  Best,`,
       bossUrgent: `Subject: Need this today
-
-Send me the final version ASAP. I need it before EOD. This can’t slip again.`,
+  
+  Send me the final version ASAP. I need it before EOD. This can’t slip again.`,
       apology: `Subject: Sorry about the delay
-
-Hi,
-
-Apologies — I missed your message and I know this is time-sensitive. Can we align on next steps today?`
+  
+  Hi,
+  
+  Apologies — I missed your message and I know this is time-sensitive. Can we align on next steps today?`
     };
     $$("[data-template]").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -779,101 +115,89 @@ Apologies — I missed your message and I know this is time-sensitive. Can we al
         toast("Template loaded.");
       });
     });
-
-    // --- Output generation (DEMO logic)
+  
+    // --- Output generation (NOW REAL AI)
     const scenario = $("#scenario");
     const tone = $("#tone");
     const metaBadge = $("#metaBadge");
     const output = $("#output");
-
-    function buildDemoReply(input, sc, tn, len){
-      const s = {
-        "client-angry": "Thanks for flagging this — I understand how frustrating that is.",
-        "boss-urgent": "Understood. I’m prioritizing this now and will have an update shortly.",
-        "say-no": "Thanks for thinking of me. I want to be upfront about capacity right now.",
-        "follow-up": "Thanks for the follow-up — sorry for the delay on my end.",
-        "apology": "I’m sorry for the delay and for any inconvenience this caused.",
-        "professor": "Thank you for your message. I appreciate your time and guidance."
-      }[sc] || "Thanks for your message.";
-
-      const t = {
-        calm: { close: "Best regards,", extra: "I’ll make sure we keep this on track." },
-        warm: { close: "Warmly,", extra: "Appreciate it — thanks again." },
-        firm: { close: "Regards,", extra: "To move forward, I’ll need confirmation on the point above." },
-        short:{ close: "Thanks,", extra: "" },
-        formal:{ close: "Sincerely,", extra: "Please let me know if any additional information is required." }
-      }[tn] || { close: "Best,", extra: "" };
-
-      const lengthLines = {
-        1: 3,
-        2: 5,
-        3: 7,
-        4: 9,
-        5: 11
-      }[Number(len)] || 7;
-
-      const core = [];
-      core.push(s);
-      core.push(`To confirm, here’s what I understand: ${input ? "the main issue/request is the point you raised." : "you’re asking for an update."}`);
-      core.push(`Here’s what I’ll do next: I’ll review the details, address the key points, and follow up with a clear timeline.`);
-      if (lengthLines >= 7) core.push(`If you can share any relevant context (screenshots, exact date/time, or expected outcome), I can move faster.`);
-      if (lengthLines >= 9) core.push(`I’ll send an update by ${new Date(Date.now()+ 2*60*60*1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} today.`);
-      if (t.extra && lengthLines >= 5) core.push(t.extra);
-
-      const nameLine = "[Your Name]";
-      let txt = core.slice(0, Math.ceil(lengthLines/2)).join("\n\n");
-      txt += `\n\n${t.close}\n${nameLine}`;
-      return txt;
-    }
-
+  
     function canGenerate(){
       if (quota <= 0){
-        toast("Daily limit hit (demo).");
+        toast("Daily limit hit.");
         activateTab("settings");
         return false;
       }
       return true;
     }
-
-    function doGenerate(variantCount = 1){
+  
+    // ✅ async now
+    async function doGenerate(variantCount = 1){
       if (!canGenerate()) return;
-
+  
       const input = $("#incoming").value.trim();
       if (!input){
         toast("Paste an email first.");
         $("#incoming").focus();
         return;
       }
-
+  
       quota -= 1;
       syncQuota();
-
-      const sc = scenario.value;
-      const tn = tone.value;
-      const len = length.value;
-
+  
       const scLabel = scenario.options[scenario.selectedIndex].text;
       metaBadge.textContent = `Scenario: ${scLabel}`;
       $("#qualityBadge").textContent = "Ready-to-send";
-
-      if (variantCount === 1){
-        output.textContent = buildDemoReply(input, sc, tn, len);
-        saveLastDraft();
-        toast("Generated.");
-        return;
+  
+      output.textContent = "Generating…";
+  
+      try {
+        if (variantCount === 1){
+          const reply = await callAI(input);
+          output.textContent = reply || "No reply returned.";
+          toast("Generated.");
+          return;
+        }
+  
+        // 3 versions: call AI three times with slight parameter nudges
+        const baseScenario = scenario.value;
+        const baseTone = tone.value;
+        const baseLen = Number(length.value);
+  
+        const variants = [];
+  
+        // Version A: as selected
+        variants.push("VERSION A\n" + (await callAI(input)));
+  
+        // Version B: shorter/direct (but keep scenario)
+        $("#tone").value = "short";
+        $("#length").value = String(Math.max(1, baseLen - 1));
+        syncLength();
+        variants.push("VERSION B\n" + (await callAI(input)));
+  
+        // Version C: firmer/longer
+        $("#tone").value = "firm";
+        $("#length").value = String(Math.min(5, baseLen + 1));
+        syncLength();
+        variants.push("VERSION C\n" + (await callAI(input)));
+  
+        // Restore UI selections
+        $("#scenario").value = baseScenario;
+        $("#tone").value = baseTone;
+        $("#length").value = String(baseLen);
+        syncLength();
+  
+        output.textContent = variants.join("\n\n— — —\n\n");
+        toast("3 versions generated.");
+      } catch (e) {
+        output.textContent = "Error generating reply.";
+        toast("API error.");
+        // Refund quota on failure
+        quota += 1;
+        syncQuota();
       }
-
-      // 3 versions: slightly tweak tone and length
-      const variants = [];
-      variants.push("VERSION A\n" + buildDemoReply(input, sc, tn, len));
-      variants.push("VERSION B\n" + buildDemoReply(input, sc, tn === "short" ? "calm" : "short", Math.max(1, Number(len)-1)));
-      variants.push("VERSION C\n" + buildDemoReply(input, sc, tn === "firm" ? "calm" : "firm", Math.min(5, Number(len)+1)));
-
-      output.textContent = variants.join("\n\n— — —\n\n");
-      saveLastDraft();
-      toast("3 versions generated.");
     }
-
+  
     // --- History (local session)
     const historyList = $("#historyList");
     const history = [];
@@ -887,12 +211,12 @@ Apologies — I missed your message and I know this is time-sensitive. Can we al
         .reverse()
         .join("\n— — —\n\n");
     }
-    function saveLastDraft(){
-      // nothing automatic besides local; just keeps last output cached
-    }
     $("#saveBtn").addEventListener("click", () => {
       const txt = output.textContent.trim();
-      if (!txt || txt === "Your reply will appear here."){ toast("Nothing to save."); return; }
+      if (!txt || txt === "Your reply will appear here." || txt === "Generating…"){
+        toast("Nothing to save.");
+        return;
+      }
       const scLabel = scenario.options[scenario.selectedIndex].text;
       history.push({
         when: new Date().toLocaleString(),
@@ -907,7 +231,7 @@ Apologies — I missed your message and I know this is time-sensitive. Can we al
       renderHistory();
       toast("History cleared.");
     });
-
+  
     // --- Buttons
     $("#generateBtn").addEventListener("click", () => doGenerate(1));
     $("#variationsBtn").addEventListener("click", () => doGenerate(3));
@@ -920,15 +244,17 @@ Apologies — I missed your message and I know this is time-sensitive. Can we al
       output.textContent = "Your reply will appear here.";
       toast("Cleared.");
     });
-
+  
     $("#copyBtn").addEventListener("click", async () => {
       const txt = output.textContent.trim();
-      if (!txt || txt === "Your reply will appear here."){ toast("Nothing to copy."); return; }
+      if (!txt || txt === "Your reply will appear here." || txt === "Generating…"){
+        toast("Nothing to copy.");
+        return;
+      }
       try{
         await navigator.clipboard.writeText(txt);
         toast("Copied.");
       }catch{
-        // fallback
         const ta = document.createElement("textarea");
         ta.value = txt;
         document.body.appendChild(ta);
@@ -938,12 +264,11 @@ Apologies — I missed your message and I know this is time-sensitive. Can we al
         toast("Copied.");
       }
     });
-
+  
     // --- Defaults
     metaBadge.textContent = `Scenario: ${scenario.options[scenario.selectedIndex].text}`;
     scenario.addEventListener("change", () => metaBadge.textContent = `Scenario: ${scenario.options[scenario.selectedIndex].text}`);
-    $("#modeLabel").textContent = "Demo";
+    $("#modeLabel").textContent = "Live";
     setTheme("dark");
   </script>
-</body>
-</html>
+  
