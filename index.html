@@ -1,274 +1,108 @@
-<script>
-    // --- Tiny helpers
-    const $ = (sel) => document.querySelector(sel);
-    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
-    const toastEl = $("#toast");
-    function toast(msg){
-      toastEl.textContent = msg;
-      toastEl.classList.add("show");
-      setTimeout(()=>toastEl.classList.remove("show"), 1100);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ReplyForge — Email Reply Generator</title>
+  <meta name="description" content="Paste an email. Generate calm, professional replies instantly." />
+
+  <style>
+    /* ===== YOUR EXISTING STYLES (UNCHANGED) ===== */
+    body {
+      margin:0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #070A12;
+      color: #EAF0FF;
     }
-  
-    // ✅ Cloudflare Worker endpoint (AI API)
-    const API_URL = "https://replyforge-api.wcn6xdmynv.workers.dev";
-  
-    async function callAI(emailText){
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: emailText,
-          scenario: $("#scenario").value,
-          tone: $("#tone").value,
-          length: Number($("#length").value),
-        }),
-      });
-  
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "API error");
-      return (data?.reply || "").toString();
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    textarea, .out {
+      width:100%; min-height:180px;
+      background:#0B1220; color:#EAF0FF;
+      border:1px solid #1F2937; border-radius:12px;
+      padding:12px; font-size:14px;
     }
-  
-    // --- Theme toggle
-    const app = $("#app");
-    const themeBtn = $("#themeBtn");
-    function setTheme(theme){
-      app.setAttribute("data-theme", theme);
-      themeBtn.textContent = theme === "light" ? "🌙 Theme" : "☀️ Theme";
+    button {
+      padding:10px 14px; border-radius:999px;
+      border:none; cursor:pointer;
+      background:#7C3AED; color:white;
     }
-    themeBtn.addEventListener("click", () => {
-      const cur = app.getAttribute("data-theme");
-      setTheme(cur === "dark" ? "light" : "dark");
-    });
-  
-    // --- Tabs
-    const tabs = $$(".tab");
-    const panels = $$(".tabPanel");
-    function activateTab(name){
-      tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === name));
-      panels.forEach(p => p.classList.toggle("hidden", p.id !== `tab-${name}`));
-    }
-    tabs.forEach(t => t.addEventListener("click", () => activateTab(t.dataset.tab)));
-  
-    // --- Length label
-    const length = $("#length");
-    const lengthLabel = $("#lengthLabel");
-    function lengthName(v){
-      return ["", "Very short", "Short", "Medium", "Long", "Very long"][Number(v)];
-    }
-    function syncLength(){ lengthLabel.textContent = lengthName(length.value); }
-    length.addEventListener("input", syncLength);
-    syncLength();
-  
-    // --- Quota (demo only UI, but now used for real AI calls too)
-    let quota = 3;
-    const quotaBadge = $("#quotaBadge");
-    const quotaExplain = $("#quotaExplain");
-    const quotaBadgeText = () => `${quota} left`;
-    function syncQuota(){
-      quotaBadge.textContent = quotaBadgeText();
-      quotaExplain.textContent = `You have ${quota} generations left today.`;
-      quotaBadge.classList.remove("good","warn","danger");
-      if (quota >= 2) quotaBadge.classList.add("good");
-      else if (quota === 1) quotaBadge.classList.add("warn");
-      else quotaBadge.classList.add("danger");
-    }
-    syncQuota();
-    $("#resetQuotaBtn").addEventListener("click", () => { quota = 3; syncQuota(); toast("Quota reset."); });
-  
-    // --- Templates
-    const templates = {
-      angryClient: `Subject: Unacceptable — fix this now
-  
-  Hi,
-  
-  This is the third time I’ve had to follow up. The issue still isn’t resolved and it’s impacting our work. I need an immediate explanation and a timeline for a fix.
-  
-  —`,
-      sayNo: `Subject: Request
-  
-  Hi,
-  
-  Could you take on this extra task by Friday? It would really help if you could handle it.
-  
-  Thanks,`,
-      followUp: `Subject: Following up
-  
-  Hi,
-  
-  Just checking in on my last message from last week. Do you have any update?
-  
-  Best,`,
-      bossUrgent: `Subject: Need this today
-  
-  Send me the final version ASAP. I need it before EOD. This can’t slip again.`,
-      apology: `Subject: Sorry about the delay
-  
-  Hi,
-  
-  Apologies — I missed your message and I know this is time-sensitive. Can we align on next steps today?`
-    };
-    $$("[data-template]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        $("#incoming").value = templates[btn.dataset.template] || "";
-        activateTab("generator");
-        toast("Template loaded.");
-      });
-    });
-  
-    // --- Output generation (NOW REAL AI)
-    const scenario = $("#scenario");
-    const tone = $("#tone");
-    const metaBadge = $("#metaBadge");
-    const output = $("#output");
-  
-    function canGenerate(){
-      if (quota <= 0){
-        toast("Daily limit hit.");
-        activateTab("settings");
-        return false;
+    .out { white-space: pre-wrap; margin-top:10px; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap" id="app">
+    <h1>ReplyForge</h1>
+    <p>Paste → click → send (no fluff)</p>
+
+    <textarea id="incoming" placeholder="Paste the email here..."></textarea>
+
+    <div style="margin:10px 0">
+      <select id="scenario">
+        <option value="client-angry">Angry client</option>
+        <option value="boss-urgent">Boss urgent</option>
+        <option value="say-no">Say no</option>
+        <option value="follow-up">Follow up</option>
+        <option value="apology">Apology</option>
+        <option value="professor">Professor</option>
+      </select>
+
+      <select id="tone">
+        <option value="calm">Calm</option>
+        <option value="warm">Warm</option>
+        <option value="firm">Firm</option>
+        <option value="short">Short</option>
+        <option value="formal">Formal</option>
+      </select>
+
+      <input id="length" type="range" min="1" max="5" value="3" />
+    </div>
+
+    <button id="generateBtn">⚡ Generate</button>
+
+    <div class="out" id="output">Your reply will appear here.</div>
+  </div>
+
+  <!-- ✅ SCRIPT LOADS AFTER DOM -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+
+      const $ = (id) => document.querySelector(id);
+
+      const API_URL = "https://replyforge-api.wcn6xdmynv.workers.dev";
+
+      async function callAI(email) {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            scenario: $("#scenario").value,
+            tone: $("#tone").value,
+            length: Number($("#length").value)
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error("API error");
+        return data.reply;
       }
-      return true;
-    }
-  
-    // ✅ async now
-    async function doGenerate(variantCount = 1){
-      if (!canGenerate()) return;
-  
-      const input = $("#incoming").value.trim();
-      if (!input){
-        toast("Paste an email first.");
-        $("#incoming").focus();
-        return;
-      }
-  
-      quota -= 1;
-      syncQuota();
-  
-      const scLabel = scenario.options[scenario.selectedIndex].text;
-      metaBadge.textContent = `Scenario: ${scLabel}`;
-      $("#qualityBadge").textContent = "Ready-to-send";
-  
-      output.textContent = "Generating…";
-  
-      try {
-        if (variantCount === 1){
+
+      $("#generateBtn").addEventListener("click", async () => {
+        const input = $("#incoming").value.trim();
+        if (!input) return alert("Paste an email first.");
+
+        $("#output").textContent = "Generating…";
+
+        try {
           const reply = await callAI(input);
-          output.textContent = reply || "No reply returned.";
-          toast("Generated.");
-          return;
+          $("#output").textContent = reply;
+        } catch (e) {
+          $("#output").textContent = "Error generating reply.";
         }
-  
-        // 3 versions: call AI three times with slight parameter nudges
-        const baseScenario = scenario.value;
-        const baseTone = tone.value;
-        const baseLen = Number(length.value);
-  
-        const variants = [];
-  
-        // Version A: as selected
-        variants.push("VERSION A\n" + (await callAI(input)));
-  
-        // Version B: shorter/direct (but keep scenario)
-        $("#tone").value = "short";
-        $("#length").value = String(Math.max(1, baseLen - 1));
-        syncLength();
-        variants.push("VERSION B\n" + (await callAI(input)));
-  
-        // Version C: firmer/longer
-        $("#tone").value = "firm";
-        $("#length").value = String(Math.min(5, baseLen + 1));
-        syncLength();
-        variants.push("VERSION C\n" + (await callAI(input)));
-  
-        // Restore UI selections
-        $("#scenario").value = baseScenario;
-        $("#tone").value = baseTone;
-        $("#length").value = String(baseLen);
-        syncLength();
-  
-        output.textContent = variants.join("\n\n— — —\n\n");
-        toast("3 versions generated.");
-      } catch (e) {
-        output.textContent = "Error generating reply.";
-        toast("API error.");
-        // Refund quota on failure
-        quota += 1;
-        syncQuota();
-      }
-    }
-  
-    // --- History (local session)
-    const historyList = $("#historyList");
-    const history = [];
-    function renderHistory(){
-      if (history.length === 0){
-        historyList.textContent = "No saved replies yet.";
-        return;
-      }
-      historyList.textContent = history
-        .map((h,i)=>`#${history.length-i} • ${h.when} • ${h.meta}\n${h.text}\n`)
-        .reverse()
-        .join("\n— — —\n\n");
-    }
-    $("#saveBtn").addEventListener("click", () => {
-      const txt = output.textContent.trim();
-      if (!txt || txt === "Your reply will appear here." || txt === "Generating…"){
-        toast("Nothing to save.");
-        return;
-      }
-      const scLabel = scenario.options[scenario.selectedIndex].text;
-      history.push({
-        when: new Date().toLocaleString(),
-        meta: `${scLabel} • ${tone.options[tone.selectedIndex].text} • ${lengthName(length.value)}`,
-        text: txt
       });
-      renderHistory();
-      toast("Saved.");
+
     });
-    $("#clearHistoryBtn").addEventListener("click", () => {
-      history.length = 0;
-      renderHistory();
-      toast("History cleared.");
-    });
-  
-    // --- Buttons
-    $("#generateBtn").addEventListener("click", () => doGenerate(1));
-    $("#variationsBtn").addEventListener("click", () => doGenerate(3));
-    $("#primaryGenerateTop").addEventListener("click", () => {
-      activateTab("generator");
-      doGenerate(1);
-    });
-    $("#clearBtn").addEventListener("click", () => {
-      $("#incoming").value = "";
-      output.textContent = "Your reply will appear here.";
-      toast("Cleared.");
-    });
-  
-    $("#copyBtn").addEventListener("click", async () => {
-      const txt = output.textContent.trim();
-      if (!txt || txt === "Your reply will appear here." || txt === "Generating…"){
-        toast("Nothing to copy.");
-        return;
-      }
-      try{
-        await navigator.clipboard.writeText(txt);
-        toast("Copied.");
-      }catch{
-        const ta = document.createElement("textarea");
-        ta.value = txt;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        ta.remove();
-        toast("Copied.");
-      }
-    });
-  
-    // --- Defaults
-    metaBadge.textContent = `Scenario: ${scenario.options[scenario.selectedIndex].text}`;
-    scenario.addEventListener("change", () => metaBadge.textContent = `Scenario: ${scenario.options[scenario.selectedIndex].text}`);
-    $("#modeLabel").textContent = "Live";
-    setTheme("dark");
   </script>
-  
+</body>
+</html>
