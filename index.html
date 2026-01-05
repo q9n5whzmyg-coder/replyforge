@@ -7,101 +7,703 @@
   <meta name="description" content="Paste an email. Generate calm, professional replies instantly." />
 
   <style>
-    /* ===== YOUR EXISTING STYLES (UNCHANGED) ===== */
-    body {
+    :root{
+      --bg0:#050814;
+      --bg1:#070A12;
+      --panel:rgba(11,18,32,.72);
+      --panel2:rgba(11,18,32,.92);
+      --text:#EAF0FF;
+      --muted:#A7B4D1;
+      --line:rgba(255,255,255,.08);
+      --line2:rgba(255,255,255,.12);
+      --good:#22C55E;
+      --warn:#F59E0B;
+      --bad:#EF4444;
+
+      --a:#7C3AED;
+      --b:#06B6D4;
+      --c:#F97316;
+
+      --shadow: 0 24px 80px rgba(0,0,0,.55);
+      --shadow2: 0 10px 35px rgba(0,0,0,.35);
+      --r:18px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
       margin:0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #070A12;
-      color: #EAF0FF;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background:
+        radial-gradient(1000px 600px at 20% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 520px at 80% 20%, rgba(6,182,212,.28), transparent 60%),
+        radial-gradient(900px 620px at 55% 90%, rgba(249,115,22,.18), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      color:var(--text);
+      overflow-x:hidden;
     }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
-    textarea, .out {
-      width:100%; min-height:180px;
-      background:#0B1220; color:#EAF0FF;
-      border:1px solid #1F2937; border-radius:12px;
-      padding:12px; font-size:14px;
+
+    /* subtle animated noise */
+    .noise{
+      pointer-events:none;
+      position:fixed; inset:-20%;
+      opacity:.08;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+      mix-blend-mode:overlay;
+      transform:translateZ(0);
+      animation: drift 10s linear infinite;
     }
-    button {
-      padding:10px 14px; border-radius:999px;
-      border:none; cursor:pointer;
-      background:#7C3AED; color:white;
+    @keyframes drift{
+      0%{transform:translate3d(-2%, -2%, 0)}
+      50%{transform:translate3d(2%, 1%, 0)}
+      100%{transform:translate3d(-2%, -2%, 0)}
     }
-    .out { white-space: pre-wrap; margin-top:10px; }
+
+    .wrap{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 26px 20px 40px;
+      position:relative;
+    }
+
+    /* top bar */
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding: 14px 16px;
+      border:1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(7,10,18,.45);
+      backdrop-filter: blur(14px);
+      box-shadow: var(--shadow2);
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width: 240px;
+    }
+
+    .logo{
+      width:38px; height:38px;
+      border-radius: 12px;
+      background:
+        radial-gradient(18px 18px at 30% 25%, rgba(255,255,255,.35), transparent 60%),
+        linear-gradient(135deg, rgba(124,58,237,1), rgba(6,182,212,1));
+      box-shadow: 0 10px 40px rgba(124,58,237,.35);
+      position:relative;
+      overflow:hidden;
+    }
+    .logo:after{
+      content:"";
+      position:absolute; inset:-40%;
+      background: linear-gradient(120deg, transparent 40%, rgba(255,255,255,.22), transparent 60%);
+      transform: rotate(15deg);
+      animation: shine 2.8s ease-in-out infinite;
+    }
+    @keyframes shine{
+      0%{transform: translateX(-30%) rotate(15deg)}
+      60%{transform: translateX(30%) rotate(15deg)}
+      100%{transform: translateX(30%) rotate(15deg)}
+    }
+
+    .brand h1{
+      margin:0;
+      font-size: 14px;
+      letter-spacing: .12em;
+      text-transform:uppercase;
+      color: rgba(234,240,255,.92);
+    }
+    .brand p{
+      margin:2px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .pillrow{
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .pill{
+      display:flex; align-items:center; gap:8px;
+      padding: 8px 12px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background: rgba(11,18,32,.55);
+      color: var(--muted);
+      font-size: 12px;
+      user-select:none;
+      backdrop-filter: blur(10px);
+    }
+    .pill b{color:var(--text); font-weight:600}
+    .pill .dot{
+      width:8px; height:8px; border-radius:50%;
+      background: var(--good);
+      box-shadow: 0 0 18px rgba(34,197,94,.35);
+    }
+
+    .ghostbtn{
+      padding: 8px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(11,18,32,.35);
+      color: var(--text);
+      cursor:pointer;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+    }
+    .ghostbtn:hover{ transform: translateY(-1px); border-color: var(--line2); background: rgba(11,18,32,.55); }
+    .ghostbtn:active{ transform: translateY(0px); }
+
+    /* hero */
+    .hero{
+      padding: 26px 4px 10px;
+      display:flex;
+      gap: 18px;
+      align-items:flex-end;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .hero h2{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+    }
+    .hero h2 .grad{
+      background: linear-gradient(90deg, rgba(124,58,237,1), rgba(6,182,212,1), rgba(249,115,22,1));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      filter: drop-shadow(0 10px 25px rgba(124,58,237,.12));
+    }
+    .hero .sub{
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 680px;
+    }
+
+    .card{
+      margin-top: 18px;
+      border:1px solid var(--line);
+      border-radius: var(--r);
+      background: linear-gradient(180deg, rgba(11,18,32,.55), rgba(11,18,32,.35));
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    .card:before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(900px 320px at 20% 0%, rgba(124,58,237,.18), transparent 60%),
+        radial-gradient(800px 320px at 80% 0%, rgba(6,182,212,.14), transparent 60%);
+      pointer-events:none;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 0;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .pane{
+      padding: 18px;
+      position:relative;
+    }
+    .pane + .pane{
+      border-left:1px solid var(--line);
+    }
+    @media (max-width: 980px){
+      .pane + .pane{ border-left:none; border-top:1px solid var(--line); }
+    }
+
+    .panehead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom: 10px;
+    }
+    .panehead h3{
+      margin:0;
+      font-size: 13px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      color: rgba(234,240,255,.86);
+    }
+    .mini{
+      font-size:12px;
+      color: var(--muted);
+      display:flex; gap:8px; align-items:center;
+    }
+    .badge{
+      padding: 6px 10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      color: rgba(234,240,255,.86);
+      font-size: 12px;
+      backdrop-filter: blur(10px);
+    }
+    .badge.good{ border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.10); }
+    .badge.warn{ border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); }
+    .badge.bad{ border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.10); }
+
+    textarea, .out{
+      width:100%;
+      min-height: 240px;
+      background: rgba(11,18,32,.65);
+      color: var(--text);
+      border:1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px 14px;
+      font-size: 14px;
+      line-height: 1.45;
+      outline:none;
+      transition: border-color .15s ease, transform .15s ease, background .15s ease;
+    }
+    textarea:focus{
+      border-color: rgba(124,58,237,.55);
+      box-shadow: 0 0 0 4px rgba(124,58,237,.16);
+      background: rgba(11,18,32,.80);
+    }
+    .out{
+      white-space: pre-wrap;
+      min-height: 240px;
+      margin-top: 10px;
+      background: rgba(11,18,32,.55);
+      position:relative;
+    }
+
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      margin-top: 12px;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .selectrow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+    }
+
+    select{
+      appearance:none;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      color: var(--text);
+      border:1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 40px 10px 14px;
+      font-size: 13px;
+      outline:none;
+      cursor:pointer;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+      position:relative;
+    }
+    select:hover{ transform: translateY(-1px); border-color: var(--line2); }
+    .selectwrap{ position:relative; display:inline-flex; }
+    .selectwrap:after{
+      content:"▾";
+      position:absolute;
+      right: 14px; top: 50%;
+      transform: translateY(-50%);
+      color: rgba(234,240,255,.65);
+      pointer-events:none;
+      font-size: 12px;
+    }
+
+    .slider{
+      display:flex; align-items:center; gap:10px;
+      padding: 10px 12px;
+      border:1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(11,18,32,.45);
+    }
+    .slider label{ font-size:12px; color: var(--muted); }
+    input[type="range"]{ width: 160px; }
+
+    .btnrow{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      align-items:center;
+    }
+
+    button{
+      padding: 11px 14px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      cursor:pointer;
+      font-weight: 650;
+      letter-spacing: .01em;
+      transition: transform .15s ease, filter .15s ease, background .15s ease, border-color .15s ease;
+      user-select:none;
+      white-space:nowrap;
+    }
+
+    .primary{
+      background: linear-gradient(135deg, rgba(124,58,237,1), rgba(6,182,212,1));
+      color: white;
+      box-shadow: 0 12px 40px rgba(124,58,237,.25);
+    }
+    .primary:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+    .primary:active{ transform: translateY(0px); filter: brightness(.98); }
+
+    .secondary{
+      background: rgba(255,255,255,.06);
+      border-color: var(--line);
+      color: var(--text);
+    }
+    .secondary:hover{ transform: translateY(-1px); border-color: var(--line2); background: rgba(255,255,255,.08); }
+    .secondary:active{ transform: translateY(0px); }
+
+    .danger{
+      background: rgba(239,68,68,.10);
+      border-color: rgba(239,68,68,.25);
+      color: rgba(255,255,255,.95);
+    }
+    .danger:hover{ transform: translateY(-1px); border-color: rgba(239,68,68,.40); }
+
+    .footer{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:10px;
+      padding: 14px 18px;
+      border-top:1px solid var(--line);
+      color: var(--muted);
+      font-size:12px;
+      position:relative;
+    }
+    .footer .k{ color: rgba(234,240,255,.85); }
+
+    /* toast */
+    .toast{
+      position:fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%);
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(11,18,32,.92);
+      border:1px solid var(--line2);
+      box-shadow: var(--shadow2);
+      color: rgba(234,240,255,.92);
+      font-size: 13px;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .18s ease, transform .18s ease;
+      backdrop-filter: blur(12px);
+      z-index: 1000;
+    }
+    .toast.show{
+      opacity:1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    /* animated caret while generating */
+    .typing{
+      display:inline-block;
+      width: 10px;
+      margin-left: 6px;
+      border-right: 2px solid rgba(234,240,255,.85);
+      animation: blink 1s steps(1) infinite;
+      height: 16px;
+      vertical-align: -2px;
+    }
+    @keyframes blink { 50%{opacity:0} }
+
+    /* subtle divider */
+    .hint{
+      margin-top:10px;
+      padding: 10px 12px;
+      border:1px dashed rgba(255,255,255,.12);
+      border-radius: 14px;
+      color: rgba(167,180,209,.92);
+      font-size: 12px;
+      background: rgba(11,18,32,.25);
+    }
+
+    /* reduce motion support */
+    @media (prefers-reduced-motion: reduce){
+      .noise, .logo:after, .typing{ animation:none !important; }
+      *{ transition:none !important; }
+    }
   </style>
 </head>
 
 <body>
+  <div class="noise" aria-hidden="true"></div>
+
   <div class="wrap" id="app">
-    <h1>ReplyForge</h1>
-    <p>Paste → click → send (no fluff)</p>
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>ReplyForge</h1>
+          <p>Paste → click → send. No fluff.</p>
+        </div>
+      </div>
 
-    <textarea id="incoming" placeholder="Paste the email here..."></textarea>
-
-    <div style="margin:10px 0">
-      <select id="scenario">
-        <option value="client-angry">Angry client</option>
-        <option value="boss-urgent">Boss urgent</option>
-        <option value="say-no">Say no</option>
-        <option value="follow-up">Follow up</option>
-        <option value="apology">Apology</option>
-        <option value="professor">Professor</option>
-      </select>
-
-      <select id="tone">
-        <option value="calm">Calm</option>
-        <option value="warm">Warm</option>
-        <option value="firm">Firm</option>
-        <option value="short">Short</option>
-        <option value="formal">Formal</option>
-      </select>
-
-      <input id="length" type="range" min="1" max="5" value="3" />
+      <div class="pillrow">
+        <div class="pill"><span class="dot"></span><b>Live</b></div>
+        <div class="pill">Free limit: <b id="quotaBadge">3 left</b></div>
+        <button class="ghostbtn" id="resetQuotaBtn" title="Demo reset">↺ Reset</button>
+      </div>
     </div>
 
-    <button id="generateBtn">⚡ Generate</button>
+    <div class="hero">
+      <div>
+        <h2>Turn stressful emails into <span class="grad">sendable</span> replies.</h2>
+        <p class="sub">Pick a scenario + tone, hit generate, copy and move on. This is designed to be fast, calm, and professional — not “chatty.”</p>
+      </div>
+    </div>
 
-    <div class="out" id="output">Your reply will appear here.</div>
+    <div class="card">
+      <div class="grid">
+        <!-- LEFT: INPUT -->
+        <div class="pane">
+          <div class="panehead">
+            <h3>Incoming email</h3>
+            <div class="mini">
+              <span class="badge" id="statusBadge">Ready</span>
+            </div>
+          </div>
+
+          <textarea id="incoming" placeholder="Paste the email here..."></textarea>
+
+          <div class="controls">
+            <div class="selectrow">
+              <span class="selectwrap">
+                <select id="scenario">
+                  <option value="client-angry">Angry client</option>
+                  <option value="boss-urgent">Boss urgent</option>
+                  <option value="say-no">Say no</option>
+                  <option value="follow-up">Follow up</option>
+                  <option value="apology">Apology</option>
+                  <option value="professor">Professor</option>
+                </select>
+              </span>
+
+              <span class="selectwrap">
+                <select id="tone">
+                  <option value="calm">Calm</option>
+                  <option value="warm">Warm</option>
+                  <option value="firm">Firm</option>
+                  <option value="short">Short</option>
+                  <option value="formal">Formal</option>
+                </select>
+              </span>
+
+              <div class="slider">
+                <label for="length">Length</label>
+                <input id="length" type="range" min="1" max="5" value="3" />
+                <span class="badge" id="lengthLabel">Medium</span>
+              </div>
+            </div>
+
+            <div class="btnrow">
+              <button class="secondary" id="clearBtn">🧹 Clear</button>
+              <button class="primary" id="generateBtn">⚡ Generate</button>
+              <button class="secondary" id="copyBtn">📋 Copy</button>
+            </div>
+          </div>
+
+          <div class="hint">
+            Pro tip: the goal isn’t “smart.” It’s “sendable.” If it’s sendable, it wins.
+          </div>
+        </div>
+
+        <!-- RIGHT: OUTPUT -->
+        <div class="pane">
+          <div class="panehead">
+            <h3>Generated reply</h3>
+            <div class="mini">
+              <span class="badge good" id="qualityBadge">Ready-to-send</span>
+            </div>
+          </div>
+
+          <div class="out" id="output">Your reply will appear here.</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div>Privacy: <span class="k">No login</span> • <span class="k">No tracking</span> • <span class="k">Local UI</span></div>
+        <div id="quotaExplain">You have 3 generations left today.</div>
+      </div>
+    </div>
   </div>
 
-  <!-- ✅ SCRIPT LOADS AFTER DOM -->
+  <div class="toast" id="toast">Copied.</div>
+
   <script>
     document.addEventListener("DOMContentLoaded", () => {
+      const $ = (sel) => document.querySelector(sel);
+      const toastEl = $("#toast");
 
-      const $ = (id) => document.querySelector(id);
+      function toast(msg){
+        toastEl.textContent = msg;
+        toastEl.classList.add("show");
+        setTimeout(()=>toastEl.classList.remove("show"), 1100);
+      }
 
+      // ✅ Cloudflare Worker endpoint
       const API_URL = "https://replyforge-api.wcn6xdmynv.workers.dev";
 
-      async function callAI(email) {
+      async function callAI(emailText){
         const res = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            email,
+            email: emailText,
             scenario: $("#scenario").value,
             tone: $("#tone").value,
-            length: Number($("#length").value)
-          })
+            length: Number($("#length").value),
+          }),
         });
 
-        const data = await res.json();
-        if (!res.ok) throw new Error("API error");
-        return data.reply;
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || "API error");
+        return (data?.reply || "").toString();
       }
 
+      // --- Length label
+      const length = $("#length");
+      const lengthLabel = $("#lengthLabel");
+      function lengthName(v){
+        return ["", "Very short", "Short", "Medium", "Long", "Very long"][Number(v)];
+      }
+      function syncLength(){ lengthLabel.textContent = lengthName(length.value); }
+      length.addEventListener("input", syncLength);
+      syncLength();
+
+      // --- Quota (demo UI)
+      let quota = 3;
+      const quotaBadge = $("#quotaBadge");
+      const quotaExplain = $("#quotaExplain");
+      const statusBadge = $("#statusBadge");
+
+      const quotaBadgeText = () => `${quota} left`;
+
+      function syncQuota(){
+        quotaBadge.textContent = quotaBadgeText();
+        quotaExplain.textContent = `You have ${quota} generations left today.`;
+
+        // status color
+        statusBadge.classList.remove("good","warn","bad");
+        if (quota >= 2){
+          statusBadge.textContent = "Ready";
+          statusBadge.classList.add("good");
+        } else if (quota === 1){
+          statusBadge.textContent = "Last one";
+          statusBadge.classList.add("warn");
+        } else {
+          statusBadge.textContent = "Limit hit";
+          statusBadge.classList.add("bad");
+        }
+      }
+      syncQuota();
+
+      $("#resetQuotaBtn").addEventListener("click", () => {
+        quota = 3;
+        syncQuota();
+        toast("Quota reset.");
+      });
+
+      function canGenerate(){
+        if (quota <= 0){
+          toast("Daily limit hit.");
+          return false;
+        }
+        return true;
+      }
+
+      // --- Generate
       $("#generateBtn").addEventListener("click", async () => {
+        if (!canGenerate()) return;
+
         const input = $("#incoming").value.trim();
-        if (!input) return alert("Paste an email first.");
+        if (!input){
+          toast("Paste an email first.");
+          $("#incoming").focus();
+          return;
+        }
 
+        quota -= 1;
+        syncQuota();
+
+        $("#qualityBadge").textContent = "Drafting…";
         $("#output").textContent = "Generating…";
+        $("#output").appendChild(Object.assign(document.createElement("span"), { className: "typing" }));
 
-        try {
+        // disable buttons while running
+        $("#generateBtn").disabled = true;
+        $("#clearBtn").disabled = true;
+        $("#copyBtn").disabled = true;
+
+        try{
           const reply = await callAI(input);
-          $("#output").textContent = reply;
-        } catch (e) {
+          $("#output").textContent = reply || "No reply returned.";
+          $("#qualityBadge").textContent = "Ready-to-send";
+          toast("Generated.");
+        } catch (e){
           $("#output").textContent = "Error generating reply.";
+          $("#qualityBadge").textContent = "Error";
+          toast("API error.");
+          // refund quota on failure
+          quota += 1;
+          syncQuota();
+        } finally {
+          $("#generateBtn").disabled = false;
+          $("#clearBtn").disabled = false;
+          $("#copyBtn").disabled = false;
         }
       });
 
+      // --- Clear
+      $("#clearBtn").addEventListener("click", () => {
+        $("#incoming").value = "";
+        $("#output").textContent = "Your reply will appear here.";
+        $("#qualityBadge").textContent = "Ready-to-send";
+        toast("Cleared.");
+      });
+
+      // --- Copy
+      $("#copyBtn").addEventListener("click", async () => {
+        const txt = $("#output").textContent.trim();
+        if (!txt || txt === "Your reply will appear here." || txt === "Generating…"){
+          toast("Nothing to copy.");
+          return;
+        }
+        try{
+          await navigator.clipboard.writeText(txt);
+          toast("Copied.");
+        }catch{
+          const ta = document.createElement("textarea");
+          ta.value = txt;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+          toast("Copied.");
+        }
+      });
     });
   </script>
 </body>
